@@ -53,11 +53,11 @@ def find_date_gaps(df, date_col):
 
     gaps = []
     for i in range(len(dates) - 1):
-        if (dates[i+1] - dates[i]).days > 1:
+        if (dates[i + 1] - dates[i]).days > 1:
             gaps.append(
                 f"No records found between "
                 f"{(dates[i] + timedelta(days=1)).strftime('%d %b %Y')} and "
-                f"{(dates[i+1] - timedelta(days=1)).strftime('%d %b %Y')}"
+                f"{(dates[i + 1] - timedelta(days=1)).strftime('%d %b %Y')}"
             )
     return gaps
 
@@ -70,6 +70,7 @@ def format_duration(td):
     total_minutes = int(td.total_seconds() // 60)
     hours = total_minutes // 60
     minutes = total_minutes % 60
+
     if hours > 0 and minutes > 0:
         return f"{hours} hr {minutes} min"
     elif hours > 0:
@@ -99,13 +100,9 @@ def generate_insights(df, target_col):
     missing_count = df[target_col].isna().sum()
 
     if missing_count > 0:
-        insights.append(
-            f"{missing_count} records are missing values in '{target_col}'."
-        )
+        insights.append(f"{missing_count} records are missing values in '{target_col}'.")
     else:
-        insights.append(
-            f"No missing values found in '{target_col}'."
-        )
+        insights.append(f"No missing values found in '{target_col}'.")
 
     return insights, missing_count
 
@@ -113,7 +110,6 @@ def generate_insights(df, target_col):
 # STREAMLIT UI
 # ==============================
 st.set_page_config(page_title="Hospital Data Quality Tool", layout="wide")
-
 st.title("🏥 Hospital Data Quality & Assessment Tool")
 
 uploaded_file = st.file_uploader(
@@ -127,6 +123,7 @@ if uploaded_file:
     if df is not None:
         st.success("File loaded successfully")
 
+        # Copy-friendly column list
         st.write("### Available Columns (copy individually)")
         for col in df.columns:
             st.code(col)
@@ -153,13 +150,13 @@ if uploaded_file:
                 for insight in insights:
                     st.write("•", insight)
 
-                # 🔑 ONLY proceed if missing data exists
+                # ==============================
+                # ONLY IF MISSING DATA EXISTS
+                # ==============================
                 if missing_count > 0:
-                    missing_df = df[df[resolved_column].isna()]
-
                     selected_lower = [c.lower() for c in display_columns]
 
-                    # Duration only when missing rows exist
+                    # 1️⃣ Add Duration FIRST (if applicable)
                     if "login time" in selected_lower and "logout time" in selected_lower:
                         df = add_duration_column(
                             df,
@@ -168,10 +165,13 @@ if uploaded_file:
                         )
                         st.info("Duration calculated from Login Time and Logout Time")
 
-                    st.write("### Records with Missing Values")
+                    # 2️⃣ Create missing_df AFTER duration exists
+                    missing_df = df[df[resolved_column].isna()]
 
+                    # 3️⃣ Prepare columns safely
                     cols_to_show = display_columns.copy()
                     if "Duration" in df.columns:
                         cols_to_show.append("Duration")
 
+                    st.write("### Records with Missing Values")
                     st.dataframe(missing_df[cols_to_show])
